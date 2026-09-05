@@ -4,7 +4,7 @@ A hands-on browser prototype for residents and educators exploring robotic chole
 
 ## Open
 
-Download **[Viscera.html](Viscera.html)** and open it in a modern desktop browser. The 3D library, application, and three attributed reference photographs are embedded. Optional fonts use Google Fonts; fallback fonts work offline. Browser storage behavior can vary for file URLs; use the local server for consistent persistence.
+Download **[Viscera.html](Viscera.html)** and open it in a modern desktop browser. The 3D library, application, generated tissue atlas, and three attributed reference photographs are embedded. Optional fonts use Google Fonts; fallback fonts work offline. Browser storage behavior can vary for file URLs; use the local server for consistent persistence.
 
 ## Run locally
 
@@ -23,7 +23,7 @@ To rebuild the portable app, run `npm run build:standalone`. The output is `Visc
 
 ## What changed
 
-- A closer endoscopic field with mottled liver, pale gallbladder, surface vessels, lobulated omentum, pericystic fat, and adhesion films that conceal underlying anatomy.
+- An oblique, close endoscopic field inspired by a supplied operative photograph: vascular pink liver capsule, pale fibrous serosa, lobulated yellow-orange omentum, pericystic fat, translucent adhesion films, wet surface highlights, and a scope border. A synthetic texture atlas supplies fine color detail while the anatomy remains interactive.
 - Two visible, articulating instrument models. The active tip follows the pointer; tissue contact drives actions.
 - Representative tools: ProGrasp, Cadiere, fenestrated bipolar and Maryland bipolar forceps, monopolar curved scissors, monopolar hook, medium-large clip applier, wristed suction, and an assistant retrieval bag.
 - Retraction, omentum movement, sequential dissection patches, visual clip tokens, connection division, liver-bed detachment, and specimen retrieval.
@@ -47,7 +47,7 @@ The current objective below the field updates after each action. Lower-third ins
 
 ## Important scope
 
-This is a research prototype, not a clinically validated surgical trainer or an approved da Vinci simulator. It does not connect to a robot or emulate all instruments, kinematics, stereo vision, haptics, force, clinical energy delivery, tissue temperature, bleeding physiology, or validated tissue planes. Its geometry is synthetic and its response model is deterministic; it does not use patient scans or live generative AI. The acute inflammatory scenario is deliberately completable and does not represent every severity or situation.
+This is a research prototype, not a clinically validated surgical trainer or an approved da Vinci simulator. It does not connect to a robot or emulate all instruments, kinematics, stereo vision, haptics, force, clinical energy delivery, tissue temperature, bleeding physiology, or validated tissue planes. Its geometry and tissue textures are synthetic and its response model is deterministic; it does not use patient scans or live generative AI. The acute inflammatory scenario is deliberately completable and does not represent every severity or situation.
 
 Retrieving a specimen with simulated injury is recorded as an injured outcome. Activity completion does not establish surgical competence or a real critical view of safety. The prototype needs surgeon review, validated mechanics and controller integration, curriculum development, and formal evaluation before clinical education or credentialing use. It is not affiliated with Intuitive; named products remain their owners' trademarks.
 
@@ -59,7 +59,9 @@ npm run build
 npm run build:standalone
 ```
 
-- `src/operative-scene.js`: procedural tissue, instruments, contact picking, and visual state.
+- `src/operative-scene.js`: synthetic tissue meshes, instruments, contact picking, and visual state.
+- `src/tissue-materials.js`: tissue atlas sampling and procedural surface detail.
+- `src/assets/tissue-atlas.png`: generated material atlas; see `TEXTURE-NOTES.md` for its prompt and provenance.
 - `src/simulation.js`: instrument/case catalogue, action rules, injuries, progression, and debrief.
 - `src/main.js`: console UI, input controls, save/resume, history, and export.
 - `src/reference-photos.js`: embedded licensed reference images.

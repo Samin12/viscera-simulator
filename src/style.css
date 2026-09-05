@@ -9,3 +9,11 @@
 /* Secondary text remains readable without competing with the operative field. */
 .panel-heading p,.instrument-detail p,.library-note,.setting-row small,.setting-block p,.setting-block small,.session-note,.event-item p,.drawer p,.case-option p{color:#6e825e}.instrument-row small,.quiet-button,.panel-footer,.objective,.interaction-hint,.app-footer,.app-footer button{color:#748766}
 .reference-gallery{display:flex;flex-direction:column;gap:25px;margin:25px 0 30px}.reference-gallery figure{margin:0}.reference-gallery img{display:block;width:100%;height:auto;border:1px solid #b9c9a5;border-radius:4px;background:#292d22}.reference-gallery figcaption{font-size:9px;line-height:1.8;color:#82966e;margin-top:10px}.reference-gallery strong,.reference-gallery span{display:block}.reference-gallery strong{font-size:12px;color:#56753e;margin-bottom:5px}.reference-gallery a{color:#537337}.reference-button{font-size:9px}@media(max-width:520px){.case-bar{flex-wrap:wrap}.case-bar-actions{margin-top:4px;width:100%;justify-content:flex-end}.reference-button{margin-right:auto}}
+:root{--scope-aspect:16/10}
+.operative-viewport{aspect-ratio:var(--scope-aspect);height:auto;min-height:0;background:#000;border-color:#151515}
+.scope-vignette{box-shadow:inset 0 0 28px 8px #0005}
+@media(min-width:1550px){.operative-viewport{height:auto}}
+@media(max-width:1250px){.operative-viewport{height:auto;min-height:0}}
+@media(max-width:1000px){.operative-viewport{min-height:0}}
+@media(max-width:760px){.operative-viewport{height:auto;min-height:0;aspect-ratio:4/3}.viewport-header{top:12px}.field-target{top:58px}}
+@media(max-width:520px){.operative-viewport{height:auto;min-height:0;aspect-ratio:4/3}.scope-info small{display:none}.field-target{left:13px;top:53px}.field-target #active-tool-label{display:none}.field-bottom{font-size:7px}.view-switch{bottom:30px}.field-feedback{max-width:calc(100% - 26px)}}

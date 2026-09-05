@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { createTissueMaps } from './tissue-materials.js';
 
-// Procedural operative field for a synthetic training prototype. No patient images,
-// recorded operations, or third-party anatomy textures are used by this renderer.
+// Interactive, synthetic operative field. Tissue maps are original generated
+// materials; the anatomy and every tissue interaction remain editable 3D geometry.
 const TITLES = {
   liver: 'Liver', gallbladder: 'Gallbladder', omentum: 'Omentum', adhesions: 'Adhesion',
   triangleFat: 'Peritoneum / triangle fat', cysticDuct: 'Cystic duct', cysticArtery: 'Cystic artery',
@@ -121,11 +122,13 @@ export function createOperativeScene(container, { onTarget = () => {}, onAction 
   scene.background = new THREE.Color('#130c0b');
   scene.fog = new THREE.FogExp2('#211310', .035);
   const camera = new THREE.PerspectiveCamera(43, 1, .08, 50);
+  const scopeRoll = THREE.MathUtils.degToRad(43);
+  camera.up.set(-Math.sin(scopeRoll), Math.cos(scopeRoll), 0);
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.7));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.21;
+  renderer.toneMappingExposure = 1.16;
   renderer.domElement.className = 'operative-canvas';
   renderer.domElement.style.cssText = 'display:block;width:100%;height:100%;touch-action:none;outline:none;cursor:crosshair;';
   renderer.domElement.tabIndex = 0;
@@ -136,7 +139,7 @@ export function createOperativeScene(container, { onTarget = () => {}, onAction 
   hud.className = 'operative-scene-hud';
   hud.style.cssText = 'position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:2;';
   const vignette = document.createElement('div');
-  vignette.style.cssText = 'position:absolute;inset:0;background:radial-gradient(ellipse at 50% 48%,transparent 39%,rgba(12,6,3,.08) 65%,rgba(9,4,2,.60) 100%);';
+  vignette.style.cssText = 'position:absolute;inset:0;background:radial-gradient(ellipse 65% 76% at 50% 48%,transparent 47%,rgba(12,6,3,.07) 74%,rgba(9,4,2,.22) 88%,#000 99.5%);';
   const cursor = document.createElement('div');
   cursor.style.cssText = 'position:absolute;width:16px;height:16px;border:1px solid rgba(204,228,167,.7);border-radius:50%;transform:translate(-50%,-50%);opacity:0;box-shadow:0 0 0 3px #0002;';
   const targetLabel = document.createElement('div');
@@ -153,16 +156,16 @@ export function createOperativeScene(container, { onTarget = () => {}, onAction 
   controls.minPolarAngle = .3; controls.maxPolarAngle = Math.PI * .81;
   controls.mouseButtons = { LEFT: -1, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
   controls.touches = { ONE: -1, TWO: THREE.TOUCH.DOLLY_ROTATE };
-  scene.add(new THREE.HemisphereLight('#eee3d3', '#301710', 1.15));
-  const key = new THREE.DirectionalLight('#fff4e6', 2.2); key.position.set(-2.2, 2.8, 5); scene.add(key);
+  scene.add(new THREE.HemisphereLight('#eee3e3', '#201212', .80));
+  const key = new THREE.DirectionalLight('#fff4f0', 1.7); key.position.set(-2.2, 2.8, 5); scene.add(key);
   const fill = new THREE.DirectionalLight('#dfc3bc', .65); fill.position.set(3.7, -.2, 2); scene.add(fill);
-  const scopeLight = new THREE.PointLight('#fff1dc', 12, 16, 1.7); scene.add(scopeLight);
+  const scopeLight = new THREE.PointLight('#fff2ed', 14, 16, 1.7); scene.add(scopeLight);
   const edge = new THREE.DirectionalLight('#eac0b0', .7); edge.position.set(-3, 1, -2); scene.add(edge);
 
   const allMaterials = new Set(), allTextures = new Set();
   function material(color, seed = 1, options = {}) {
-    const { variation = .32, ...physicalOptions } = options;
-    const maps = proceduralMaps(color, seed, variation);
+    const { variation = .32, tissueKind = null, ...physicalOptions } = options;
+    const maps = tissueKind ? createTissueMaps(tissueKind) : proceduralMaps(color, seed, variation);
     Object.values(maps).forEach((texture) => allTextures.add(texture));
     const result = new THREE.MeshPhysicalMaterial({ ...maps, color: '#ffffff',
       roughness: .83, metalness: 0, clearcoat: .35, clearcoatRoughness: .24,
@@ -171,19 +174,19 @@ export function createOperativeScene(container, { onTarget = () => {}, onAction 
   }
   function plainMaterial(options) { const m = new THREE.MeshPhysicalMaterial(options); allMaterials.add(m); return m; }
   const mat = {
-    liver: material('#673236', 4, { bumpScale: .024, roughness: .93, clearcoat: .38, clearcoatRoughness: .26, variation: .60 }),
-    gb: material('#adb1a0', 13, { bumpScale: .011, roughness: .83, clearcoat: .42, clearcoatRoughness: .24, variation: .32 }),
-    gbInflamed: material('#bba5a0', 17, { bumpScale: .021, roughness: .87, clearcoat: .40, clearcoatRoughness: .25, variation: .39 }),
-    fat: material('#d6ab50', 23, { bumpScale: .046, clearcoat: .22, clearcoatRoughness: .29, roughness: .98, variation: .49 }),
-    fatInflamed: material('#c69a51', 28, { bumpScale: .052, clearcoat: .25, clearcoatRoughness: .29, roughness: .98, variation: .53 }),
-    cavity: material('#663e32', 34, { bumpScale: .045, clearcoat: .15, roughness: 1, side: THREE.BackSide }),
-    duodenum: material('#b89a83', 5, { bumpScale: .012, roughness: .86, clearcoat: .65 }),
+    liver: material('#673236', 4, { tissueKind: 'liver', bumpScale: .052, roughness: .72, clearcoat: .78, clearcoatRoughness: .095, variation: .60 }),
+    gb: material('#adb1a0', 13, { tissueKind: 'serosa', bumpScale: .032, roughness: .67, clearcoat: .84, clearcoatRoughness: .085, variation: .32 }),
+    gbInflamed: material('#bba5a0', 17, { tissueKind: 'serosa', color: '#edc6bd', bumpScale: .041, roughness: .73, clearcoat: .79, clearcoatRoughness: .12, variation: .39 }),
+    fat: material('#d6ab50', 23, { tissueKind: 'fat', bumpScale: .064, clearcoat: .54, clearcoatRoughness: .14, roughness: .82, variation: .49 }),
+    fatInflamed: material('#c69a51', 28, { tissueKind: 'fat', color: '#ecd6bb', bumpScale: .071, clearcoat: .59, clearcoatRoughness: .13, roughness: .83, variation: .53 }),
+    cavity: material('#25171b', 34, { bumpScale: .045, clearcoat: .15, roughness: 1, side: THREE.BackSide }),
+    duodenum: material('#b89a83', 5, { tissueKind: 'serosa', color: '#c7a49d', bumpScale: .025, roughness: .82, clearcoat: .65 }),
     duct: material('#b9b39a', 8, { roughness: .74, bumpScale: .012, clearcoat: .63 }),
     artery: material('#974c45', 12, { bumpScale: .012, roughness: .72, clearcoat: .7 }),
-    vein: plainMaterial({ color: '#824340', roughness: .54, clearcoat: .4, side: THREE.DoubleSide }),
-    bed: material('#95564b', 16, { bumpScale: .023, roughness: .92, clearcoat: .54 }),
-    membrane: material('#d4bca1', 33, { transparent: true, opacity: .33, depthWrite: false, roughness: .9, bumpScale: .009, clearcoat: .74 }),
-    adhesion: material('#d0b7a0', 39, { transparent: true, opacity: .58, depthWrite: false, roughness: .92, bumpScale: .008 }),
+    vein: plainMaterial({ color: '#a34955', roughness: .54, clearcoat: .4, side: THREE.DoubleSide }),
+    bed: material('#95564b', 16, { tissueKind: 'serosa', color: '#c68180', bumpScale: .038, roughness: .85, clearcoat: .70 }),
+    membrane: material('#d4bca1', 33, { tissueKind: 'membrane', transparent: true, opacity: .62, depthWrite: false, roughness: .55, bumpScale: .033, clearcoat: .95, clearcoatRoughness: .075 }),
+    adhesion: material('#d0b7a0', 39, { tissueKind: 'membrane', transparent: true, opacity: .71, depthWrite: false, roughness: .62, bumpScale: .025, clearcoat: .8, clearcoatRoughness: .095 }),
     blood: plainMaterial({ color: '#760811', roughness: .19, clearcoat: 1, clearcoatRoughness: .09, side: THREE.DoubleSide }),
     char: plainMaterial({ color: '#36251b', roughness: .96, side: THREE.DoubleSide }),
     metal: plainMaterial({ color: '#aab8ba', metalness: .85, roughness: .22, clearcoat: .3 }),
@@ -233,7 +236,7 @@ export function createOperativeScene(container, { onTarget = () => {}, onAction 
   let disposed = false, frameId = 0, width = 1, height = 1, cameraTransition = null;
   let extractionStarted = 0, readySent = false;
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const armTips = { left: new THREE.Vector3(-1.34, .2, 1.5), right: new THREE.Vector3(.57, -.78, 1.45) };
+  const armTips = { left: new THREE.Vector3(-1.65, .06, 1.45), right: new THREE.Vector3(.36, -.79, 1.3) };
   const desiredTips = { left: armTips.left.clone(), right: armTips.right.clone() };
   const instrumentTypes = { left: 'prograsp', right: 'maryland' };
   const armModels = {};
@@ -262,15 +265,18 @@ export function createOperativeScene(container, { onTarget = () => {}, onAction 
     return new THREE.Vector3(-released * .43, released * .25, released * .63);
   }
   function gbPoint(t) {
-    const lift = state.retracted ? .72 : 0;
-    const points = [[-.25, -.65, .91], [-.45, -.4 + lift * .11, 1.00], [-.68 - lift * .18, .0 + lift * .36, 1.09], [-.81 - lift * .21, .41 + lift * .72, 1.04], [-.87 - lift * .28, .72 + lift, .9]];
-    const p = new THREE.CatmullRomCurve3(points.map(v3)).getPoint(t);
-    return p.add(deltaForGb());
+    const traction = state.retracted ? 1 : 0;
+    const points = [[-.25, -.65, .91], [-.59 - traction * .06, -.46 + traction * .035, 1.06],
+      [-1.00 - traction * .21, -.15 + traction * .055, 1.18 + traction * .055],
+      [-1.43 - traction * .43, .045 + traction * .015, 1.23 + traction * .12],
+      [-1.73 - traction * .64, -.01 - traction * .075, 1.16 + traction * .15]];
+    const point = new THREE.CatmullRomCurve3(points.map(v3)).getPoint(t);
+    return point.add(deltaForGb());
   }
   function gbCurve() { return new THREE.CatmullRomCurve3(Array.from({ length: 8 }, (_, i) => gbPoint(i / 7))); }
   function gbRadius(t) {
-    const fullness = currentCase.inflamed ? 1.2 : 1;
-    return (.075 * (1 - t) + .39 * Math.pow(Math.max(.00001, Math.sin(Math.PI * t)), .65) * (.6 + t * .5)) * fullness;
+    const fullness = currentCase.inflamed ? 1.19 : 1;
+    return (.075 * (1 - t) + .56 * Math.pow(Math.max(.00001, Math.sin(Math.PI * t)), .63) * (.68 + t * .42)) * fullness;
   }
 
   function buildLiver() {
@@ -284,10 +290,6 @@ export function createOperativeScene(container, { onTarget = () => {}, onAction 
         z * 1.19 * taper - .67 + .025 * Math.sin(x * 17) * Math.cos(y * 14));
     }
     geo.computeVertexNormals(); attach(g, geo, mat.liver, 'liver');
-    for (let i = 0; i < 4; i++) {
-      const x = -2.8 + i * 1.5;
-      addVessel(g, [[x, 1.28, .4], [x + .17, 1.55, .49], [x + .06, 1.86, .48]], .009, 'liver');
-    }
     // Dim curved abdominal wall remains around the operative recess, not as a flat backdrop.
     const backGeometry = sculptedEllipsoid([5.8, 4.7, 2.4], 9, 48);
     const bp = backGeometry.attributes.position, bi = backGeometry.index.array, openIndices = [];
@@ -299,18 +301,59 @@ export function createOperativeScene(container, { onTarget = () => {}, onAction 
     back.position.set(0, -.05, -2.1); back.scale.z = .55; anatomy.add(back);
   }
   function buildGallbladder() {
-    const anchor = gbPoint(.47).add(new THREE.Vector3(0, 0, .38));
-    const g = groupFor('gallbladder', anchor.toArray());
-    g.visible = !state.extracted;
+    const anchor = gbPoint(.49).add(new THREE.Vector3(0, 0, .35));
+    const group = groupFor('gallbladder', anchor.toArray());
+    group.visible = !state.extracted;
     const curve = gbCurve();
-    attach(g, tubeGeometry(curve, gbRadius, { radial: 32, segments: 94 }), currentCase.inflamed ? mat.gbInflamed : mat.gb, 'gallbladder');
-    const p = (t, xOff = 0, zOff = 0) => {
-      const q = curve.getPoint(t); q.x += xOff; q.z += gbRadius(t) + zOff; return q.toArray();
+    const body = tubeGeometry(curve, gbRadius, { radial: 48, segments: 122 });
+    const positions = body.attributes.position, uv = body.attributes.uv;
+    for (let i = 0; i < positions.count; i++) {
+      const t = uv.getY(i), center = curve.getPoint(t);
+      positions.setZ(i, center.z + (positions.getZ(i) - center.z) * .44);
+    }
+    body.computeVertexNormals();
+    attach(group, body, currentCase.inflamed ? mat.gbInflamed : mat.gb, 'gallbladder');
+    const surface = (t, side = 0, lift = 0) => {
+      const point = curve.getPoint(t), radius = gbRadius(t);
+      point.x += side * radius;
+      point.z += radius * .45 * Math.sqrt(Math.max(.05, 1 - side * side)) + lift;
+      return point.toArray();
     };
-    addVessel(g, [p(.19, .05), p(.34, .03), p(.52, -.07), p(.73, -.08), p(.89, -.04)], .012, 'gallbladder');
-    addVessel(g, [p(.35, .03), p(.46, .15, -.02), p(.64, .25, -.06)], .007, 'gallbladder');
-    addVessel(g, [p(.55, -.06), p(.65, -.19, -.02), p(.80, -.21, -.07)], .008, 'gallbladder');
-    addVessel(g, [p(.71, -.08), p(.80, .02), p(.91, .06, -.03)], .006, 'gallbladder');
+    addVessel(group, [surface(.12, -.1), surface(.29, -.08), surface(.48, -.15), surface(.66, -.04), surface(.83, .03), surface(.95, 0)], .0029, 'gallbladder');
+    for (let i = 0; i < 7; i++) {
+      const t = .22 + i * .09, side = i % 2 ? -1 : 1;
+      addVessel(group, [surface(t, -.08), surface(t + .07, side * .25), surface(t + .13, side * .66)], .0018, 'gallbladder');
+      addVessel(group, [surface(t + .055, side * .22), surface(t + .075, side * .50), surface(t + .09, side * .78)], .0012, 'gallbladder');
+    }
+    // Taut serosa fans away from the grasper, with its root divided into the
+    // same counted upper-bed panels as the tissue state. It is real geometry.
+    const graspPoint = gbPoint(.88).add(new THREE.Vector3(0, -.025, .16));
+    const mapFan = (u, t) => {
+      const root = new THREE.Vector3(-.15, .15 + u * .85, .92 + .07 * (1 - u * u));
+      if (state.lowerThirdReviewed && u < -.28) root.y += .12 * (-u);
+      const point = graspPoint.clone().lerp(root, t);
+      const tension = .014 * Math.sin(u * 38 + t * 6) * Math.sin(t * Math.PI);
+      point.z += .11 * Math.sin(Math.PI * t) * (1 - u * u) + tension;
+      point.y += .025 * Math.sin(u * 16) * t;
+      return point.toArray();
+    };
+    const flap = patchGeometry((u, t) => mapFan(u, t * .56), 42, 32);
+    attach(group, flap, mat.membrane, 'gallbladder');
+    const removed = maxima.bed - clamp(Number(state.bedRemaining) || 0, 0, maxima.bed);
+    for (let i = removed; i < maxima.bed; i++) {
+      const low = -1 + i * 2 / maxima.bed, high = -1 + (i + 1) * 2 / maxima.bed;
+      const panel = patchGeometry((u, t) => mapFan(lerp(low, high, (u + 1) / 2), .56 + t * .44), 12, 32);
+      attach(group, panel, mat.membrane, 'liverBed');
+    }
+    for (let i = 0; i < 5; i++) {
+      const across = -.75 + i * .34;
+      const panelIndex = clamp(Math.floor((across + 1) * .5 * maxima.bed), 0, maxima.bed - 1);
+      const visibleLength = panelIndex < removed ? .55 : .82;
+      const points = [.12, .32, .48, .64, .82].filter((t) => t <= visibleLength).map((t) => {
+        const point = mapFan(across + .055 * Math.sin(t * 8 + i), t); point[2] += .004; return point;
+      });
+      addVessel(group, points, .0035, 'gallbladder');
+    }
   }
   function buildOmentum() {
     const moved = state.omentumMoved;
@@ -338,31 +381,22 @@ export function createOperativeScene(container, { onTarget = () => {}, onAction 
       const positions = geo.attributes.position, colors = [];
       for (let i = 0; i < positions.count; i++) {
         const x = positions.getX(i), y = positions.getY(i);
-        const tone = .81 + noise(x * 4, y * 4, 53) * .17 + noise(x * 13, y * 11, 19) * .045;
-        colors.push(tone, tone * .976, tone * .93);
+        const tone = .93 + noise(x * 4, y * 4, 53) * .055 + noise(x * 13, y * 11, 19) * .015;
+        colors.push(tone, tone * .997, tone * .986);
       }
       geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
       omentumGeometryCache.set(Boolean(moved), geo.clone());
     }
-    mat.fat.vertexColors = true; mat.fatInflamed.vertexColors = true;
+    mat.fat.vertexColors = false; mat.fatInflamed.vertexColors = false;
     attach(g, geo, currentCase.inflamed ? mat.fatInflamed : mat.fat, 'omentum');
-    // Narrow pink vessels rest on the fatty apron rather than floating as atlas tubes.
-    for (let i = 0; i < 7; i++) {
-      const x = -2.8 + i * .78, yOff = moved ? -.93 : 0, zOff = moved ? -.19 : 0;
-      addVessel(g, [[x, -1.12 + yOff, 1.43 + zOff], [x + .17, -1.43 + yOff, 1.43 + zOff], [x + .04, -1.86 + yOff, 1.30 + zOff], [x + .23, -2.22 + yOff, 1.12 + zOff]], .009, 'omentum');
-      addVessel(g, [[x + .14, -1.43 + yOff, 1.44 + zOff], [x + .36, -1.6 + yOff, 1.42 + zOff], [x + .49, -1.85 + yOff, 1.31 + zOff]], .005, 'omentum');
-    }
   }
+
   function buildContext() {
     const g = groupFor('duodenum', [1.84, -1.32, .30]);
     const points = [[2.77, -.43, -.22], [2.38, -.77, .03], [1.8, -1.09, .11], [1.56, -1.58, .08], [1.86, -1.95, -.22]];
     attach(g, tubeGeometry(points, .31, { radial: 24, segments: 58 }), mat.duodenum, 'duodenum');
-    // Mesenteric coverage keeps context organs embedded in the field.
-    const flank = new THREE.Group(); anatomy.add(flank);
-    const rightFat = attach(flank, sculptedEllipsoid([1.3, .86, .35], 7), mat.fat);
-    rightFat.position.set(2.73, -.86, .32); rightFat.rotation.z = .25;
-    const leftFat = attach(flank, sculptedEllipsoid([1.23, 1.1, .38], 11), mat.fat);
-    leftFat.position.set(-3.34, -.67, .22); leftFat.rotation.z = -.35;
+    // The foreground apron and liver obscure most bowel. No isolated context
+    // ellipsoids are placed beside the gallbladder in the close operative crop.
   }
   function buildAdhesions() {
     const remaining = clamp(Number(state.adhesionsRemaining) || 0, 0, maxima.adhesions);
@@ -648,7 +682,7 @@ export function createOperativeScene(container, { onTarget = () => {}, onAction 
     state.bedRemaining = clamp(Number(state.bedRemaining) || 0, 0, maxima.bed);
     if (state.extracted && !wasExtracted) extractionStarted = performance.now();
     setActiveArm(state.activeArm);
-    if (newlyRetracted) desiredTips[tractionArm].copy(gbPoint(.83)).add(new THREE.Vector3(0, 0, gbRadius(.83)));
+    if (newlyRetracted) desiredTips[tractionArm].copy(gbPoint(.83)).add(new THREE.Vector3(0, 0, gbRadius(.83) * .45));
     setInstrument('left', state.instruments.left); setInstrument('right', state.instruments.right);
     const nextFingerprint = sceneFingerprint(state);
     if (nextFingerprint !== fingerprint) { fingerprint = nextFingerprint; rebuildField(); }
@@ -664,8 +698,8 @@ export function createOperativeScene(container, { onTarget = () => {}, onAction 
     syncState(state); setView('operative');
   }
   const views = {
-    operative: { position: [.33, -.49, 7.4], target: [-.18, -.17, .55] },
-    closeup: { position: [.04, -.34, 5.1], target: [-.20, -.40, .83] },
+    operative: { position: [.12, -.28, 5.85], target: [-.27, -.02, .83] },
+    closeup: { position: [.03, -.28, 4.7], target: [-.20, -.40, .86] },
     posterior: { position: [3.1, -.07, -5.3], target: [-.15, -.15, .45] },
   };
   function moveCamera(position, target) {
@@ -766,13 +800,13 @@ export function createOperativeScene(container, { onTarget = () => {}, onAction 
   function updateInstruments(now) {
     const tractionLatched = state.retracted && !state.extracted && ['prograsp', 'cadiere', 'fenestrated'].includes(instrumentTypes[tractionArm]);
     if (tractionLatched && activeArm !== tractionArm) {
-      desiredTips[tractionArm].copy(gbPoint(.83)).add(new THREE.Vector3(0, 0, gbRadius(.83)));
+      desiredTips[tractionArm].copy(gbPoint(.83)).add(new THREE.Vector3(0, 0, gbRadius(.83) * .45));
     }
     for (const arm of ['left', 'right']) {
       const model = armModels[arm]; if (!model) continue;
       armTips[arm].lerp(desiredTips[arm], reduceMotion ? 1 : .28);
       const tip = armTips[arm];
-      cameraBase.set(arm === 'left' ? -1.65 : 1.68, -1.48, -1.15).applyMatrix4(camera.matrixWorld);
+      cameraBase.set(arm === 'left' ? -1.85 : 1.68, arm === 'left' ? .05 : -1.48, -1.15).applyMatrix4(camera.matrixWorld);
       const axis = tip.clone().sub(cameraBase).normalize();
       const wristPoint = tip.clone().addScaledVector(axis, -.27);
       const shaftEnd = wristPoint.clone().addScaledVector(axis, -.14);

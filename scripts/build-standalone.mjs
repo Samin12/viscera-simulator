@@ -1,0 +1,12 @@
+import { readFile, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+const root = resolve(import.meta.dirname, '..');
+let html = await readFile(resolve(root, 'dist/index.html'), 'utf8');
+const script = html.match(/<script\b[^>]*src="([^"]+)"[^>]*><\/script>/);
+const style = html.match(/<link\b[^>]*rel="stylesheet"[^>]*href="([^"]+)"[^>]*>/);
+if (!script || !style) throw new Error('Expected one bundled script and stylesheet.');
+const js = (await readFile(resolve(root, 'dist', script[1].replace(/^\//, '')), 'utf8')).replace(/<\/script/gi, '<\\/script');
+const css = (await readFile(resolve(root, 'dist', style[1].replace(/^\//, '')), 'utf8')).replace(/<\/style/gi, '<\\/style');
+html = html.replace(script[0], () => `<script type="module">${js}</script>`).replace(style[0], () => `<style>${css}</style>`);
+await writeFile(resolve(root, 'Viscera.html'), html);
+console.log('Created Viscera.html — self-contained app bundle.');
